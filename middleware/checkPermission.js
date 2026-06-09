@@ -1,58 +1,43 @@
-const Permission = require('../models/Permission');
+const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 
-/**
- * Middleware per verificar si l'usuari té un permís específic
- * @param {string} requiredPermission - Nom del permís requerit
- * @returns {Function} Middleware function
- */
-const checkPermission = (requiredPermission) => {
+const checkPermission = (permissionName) => {
   return async (req, res, next) => {
+    const startTime = Date.now();
+    
     try {
-      // Verificar si hi ha usuari autenticat
       if (!req.user) {
-        return res.status(401).json({
-          success: false,
-          error: 'No autenticat'
-        });
+        return res.status(401).json({ success: false, error: 'No autenticat' });
       }
-
-      // Verificar si el permís existeix a la base de dades
-      const permissionExists = await Permission.findOne({ name: requiredPermission });
-      if (!permissionExists) {
-        return res.status(400).json({
-          success: false,
-          error: `El permís '${requiredPermission}' no existeix`
-        });
-      }
-
-      // Verificar si l'usuari té el permís
-      const hasPermission = await req.user.hasPermission(requiredPermission);
+      
+      const user = await User.findById(req.user._id);
+      const hasPermission = await user.hasPermission(permissionName);
       
       if (!hasPermission) {
-        // Registrar intent d'accés denegat a l'auditoria
-        if (req.auditLog) {
-          req.auditLog.status = 'error';
-          req.auditLog.errorMessage = `Permís denegat: ${requiredPermission}`;
-          await req.auditLog.save();
-        }
+        await AuditLog.log({
+          userId: req.user._id,
+          userName: req.user.name,
+          action: permissionName,
+          resource: req.path,
+          resourceType: 'system',
+          status: 'error',
+          errorMessage: 'Permission denied',
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+          duration: Date.now() - startTime
+        });
         
         return res.status(403).json({
           success: false,
-          error: `No tens permís per realitzar aquesta acció`,
-          permission: requiredPermission
+          error: `No tens permís per: ${permissionName}`,
+          requiredPermission: permissionName
         });
       }
-
-      // Afegir informació del permís a la petició
-      req.permission = requiredPermission;
       
       next();
     } catch (error) {
-      console.error('Error en checkPermission middleware:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Error intern del servidor'
-      });
+      console.error('Error a checkPermission:', error);
+      res.status(500).json({ success: false, error: 'Error intern del servidor' });
     }
   };
 };

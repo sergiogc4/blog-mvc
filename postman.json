@@ -1,0 +1,537 @@
+{
+  "info": {
+    "name": "T9 - JWT Avançat + Jerarquia de Rols (51 proves)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. AUTENTICACIÓ (7 proves)",
+      "item": [
+        {
+          "name": "1.1 Registre d'Usuari",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"joan@example.com\", \"password\": \"Password123!\", \"firstName\": \"Joan\", \"lastName\": \"Garcia\"}"},
+            "url": "http://localhost:3000/api/auth/register"
+          }
+        },
+        {
+          "name": "1.2 Login Correcte",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"admin@system.com\", \"password\": \"Admin123!\"}"},
+            "url": "http://localhost:3000/api/auth/login"
+          }
+        },
+        {
+          "name": "1.3 Login Incorrecte",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"admin@system.com\", \"password\": \"wrongpass\"}"},
+            "url": "http://localhost:3000/api/auth/login"
+          }
+        },
+        {
+          "name": "1.4 Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"refreshToken\": \"{{refreshToken}}\"}"},
+            "url": "http://localhost:3000/api/auth/refresh"
+          }
+        },
+        {
+          "name": "1.5 Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"refreshToken\": \"{{refreshToken}}\"}"},
+            "url": "http://localhost:3000/api/auth/logout"
+          }
+        },
+        {
+          "name": "1.6 Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"admin@system.com\"}"},
+            "url": "http://localhost:3000/api/auth/forgot-password"
+          }
+        },
+        {
+          "name": "1.7 Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"newPassword\": \"NovaPassword123!\"}"},
+            "url": "http://localhost:3000/api/auth/reset-password/{{resetToken}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. USUARIS (5 proves)",
+      "item": [
+        {
+          "name": "2.1 Llistar Usuaris",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/users"
+          }
+        },
+        {
+          "name": "2.2 Obtenir Usuari per ID",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/users/{{userId}}"
+          }
+        },
+        {
+          "name": "2.3 Actualitzar Usuari",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"name\": \"Joan Garcia Actualitzat\"}"},
+            "url": "http://localhost:3000/api/users/{{userId}}"
+          }
+        },
+        {
+          "name": "2.4 Obtenir Permisos Usuari",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/users/{{userId}}/permissions"
+          }
+        },
+        {
+          "name": "2.5 Esborrar Usuari",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/users/{{deleteUserId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. ROLS (8 proves)",
+      "item": [
+        {
+          "name": "3.1 Llistar Rols",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/roles"
+          }
+        },
+        {
+          "name": "3.2 Obtenir Rol per ID",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/roles/{{roleId}}"
+          }
+        },
+        {
+          "name": "3.3 Crear Rol",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"name\": \"editor\", \"level\": 2, \"parentRole\": \"{{parentRoleId}}\", \"permissions\": [\"{{permissionId}}\"], \"description\": \"Editor de tasques\"}"},
+            "url": "http://localhost:3000/api/roles"
+          }
+        },
+        {
+          "name": "3.4 Actualitzar Rol",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"description\": \"Editor actualitzat\"}"},
+            "url": "http://localhost:3000/api/roles/{{roleId}}"
+          }
+        },
+        {
+          "name": "3.5 Obtenir Jerarquia",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/roles/{{roleId}}/hierarchy"
+          }
+        },
+        {
+          "name": "3.6 Obtenir Permisos Heretats",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/roles/{{roleId}}/permissions"
+          }
+        },
+        {
+          "name": "3.7 Esborrar Rol",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/roles/{{deleteRoleId}}"
+          }
+        },
+        {
+          "name": "3.8 Error Jerarquia (Cicle)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"name\": \"invalid\", \"level\": 1, \"parentRole\": \"{{roleId}}\", \"description\": \"Invalid\"}"},
+            "url": "http://localhost:3000/api/roles"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. PERMISOS (6 proves)",
+      "item": [
+        {
+          "name": "4.1 Llistar Permisos",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/permissions"
+          }
+        },
+        {
+          "name": "4.2 Obtenir Permís per ID",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/permissions/{{permissionId}}"
+          }
+        },
+        {
+          "name": "4.3 Crear Permís",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"name\": \"tasks:delete\", \"description\": \"Esborrar tasques\", \"category\": \"tasks\"}"},
+            "url": "http://localhost:3000/api/permissions"
+          }
+        },
+        {
+          "name": "4.4 Actualitzar Permís",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"description\": \"Actualitzat\"}"},
+            "url": "http://localhost:3000/api/permissions/{{permissionId}}"
+          }
+        },
+        {
+          "name": "4.5 Esborrar Permís",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/permissions/{{deletePermId}}"
+          }
+        },
+        {
+          "name": "4.6 Error - Permís Duplicat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"name\": \"tasks:read\", \"description\": \"Duplicat\", \"category\": \"tasks\"}"},
+            "url": "http://localhost:3000/api/permissions"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. DELEGACIÓ (6 proves)",
+      "item": [
+        {
+          "name": "5.1 Llistar Delegacions",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/delegations"
+          }
+        },
+        {
+          "name": "5.2 Obtenir Delegació per ID",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/delegations/{{delegationId}}"
+          }
+        },
+        {
+          "name": "5.3 Crear Delegació",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"toUserId\": \"{{userId}}\", \"permission\": \"tasks:assign\", \"reason\": \"Vacances\", \"daysValid\": 5}"},
+            "url": "http://localhost:3000/api/delegations"
+          }
+        },
+        {
+          "name": "5.4 Delegacions d'un Usuari",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/delegations/user/{{userId}}"
+          }
+        },
+        {
+          "name": "5.5 Revocar Delegació",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/delegations/{{delegationId}}"
+          }
+        },
+        {
+          "name": "5.6 Error - Dies Negatius",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"toUserId\": \"{{userId}}\", \"permission\": \"tasks:assign\", \"reason\": \"Test\", \"daysValid\": -1}"},
+            "url": "http://localhost:3000/api/delegations"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. AUDITORIA (5 proves)",
+      "item": [
+        {
+          "name": "6.1 Obtenir Logs",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/audit/logs"
+          }
+        },
+        {
+          "name": "6.2 Filtrar per Acció",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/audit/logs?action=tasks:update"
+          }
+        },
+        {
+          "name": "6.3 Filtrar per Usuari",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/audit/logs?userId={{userId}}"
+          }
+        },
+        {
+          "name": "6.4 Estadístiques",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/audit/stats"
+          }
+        },
+        {
+          "name": "6.5 Exportar CSV",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/audit/export?format=csv"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. TASQUES (5 proves)",
+      "item": [
+        {
+          "name": "7.1 Crear Tasca",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"title\": \"Tasca nova\", \"description\": \"Descripció\", \"status\": \"pending\", \"priority\": \"high\"}"},
+            "url": "http://localhost:3000/api/tasks"
+          }
+        },
+        {
+          "name": "7.2 Llistar Tasques",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/tasks?page=1&limit=10"
+          }
+        },
+        {
+          "name": "7.3 Actualitzar Tasca",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"title\": \"Actualitzada\", \"status\": \"in_progress\"}"},
+            "url": "http://localhost:3000/api/tasks/{{taskId}}"
+          }
+        },
+        {
+          "name": "7.4 Obtenir Tasca per ID",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/tasks/{{taskId}}"
+          }
+        },
+        {
+          "name": "7.5 Esborrar Tasca",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/tasks/{{taskId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. SEGURETAT (5 proves)",
+      "item": [
+        {
+          "name": "8.1 Accés sense Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:3000/api/tasks"
+          }
+        },
+        {
+          "name": "8.2 Token Invàlid",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer token_invalido_123"}],
+            "url": "http://localhost:3000/api/tasks"
+          }
+        },
+        {
+          "name": "8.3 Token Expirat",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjF9.xxx"}],
+            "url": "http://localhost:3000/api/tasks"
+          }
+        },
+        {
+          "name": "8.4 Accés sense Permís",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{userAccessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"name\": \"test\", \"level\": 1, \"description\": \"test\"}"},
+            "url": "http://localhost:3000/api/roles"
+          }
+        },
+        {
+          "name": "8.5 Rate Limiting",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{userAccessToken}}"}],
+            "url": "http://localhost:3000/api/tasks"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. ERRORS (4 proves)",
+      "item": [
+        {
+          "name": "9.1 Email Invàlid",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"email_invalido\", \"password\": \"Password123!\", \"firstName\": \"Joan\", \"lastName\": \"Garcia\"}"},
+            "url": "http://localhost:3000/api/auth/register"
+          }
+        },
+        {
+          "name": "9.2 Contrasenya Feble",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"test@example.com\", \"password\": \"123\", \"firstName\": \"Test\", \"lastName\": \"User\"}"},
+            "url": "http://localhost:3000/api/auth/register"
+          }
+        },
+        {
+          "name": "9.3 Email Duplicat",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"admin@system.com\", \"password\": \"Password123!\", \"firstName\": \"Admin\", \"lastName\": \"User\"}"},
+            "url": "http://localhost:3000/api/auth/register"
+          }
+        },
+        {
+          "name": "9.4 Recurs No Trobat",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}],
+            "url": "http://localhost:3000/api/tasks/id_inexistent"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "accessToken", "value": ""},
+    {"key": "refreshToken", "value": ""},
+    {"key": "userId", "value": ""},
+    {"key": "roleId", "value": ""},
+    {"key": "permissionId", "value": ""},
+    {"key": "delegationId", "value": ""},
+    {"key": "taskId", "value": ""},
+    {"key": "resetToken", "value": ""},
+    {"key": "parentRoleId", "value": ""},
+    {"key": "deleteRoleId", "value": ""},
+    {"key": "deletePermId", "value": ""},
+    {"key": "deleteUserId", "value": ""},
+    {"key": "userAccessToken", "value": ""}
+  ]
+}

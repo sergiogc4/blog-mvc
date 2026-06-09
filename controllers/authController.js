@@ -1,312 +1,183 @@
+const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const User = require('../models/User');
 const Role = require('../models/Role');
-const Permission = require('../models/Permission');
+const PasswordReset = require('../models/PasswordReset');
+const jwtService = require('../services/jwtService');
+const AuditLog = require('../models/AuditLog');
 
-/**
- * @desc    Registrar usuari
- * @route   POST /api/auth/register
- * @access  Public
- */
-exports.register = async (req, res, next) => {
+const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-
-    // Validacions
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Si us plau, introdueix nom, email i contrasenya'
-      });
+    const { name, email, password, firstName, lastName } = req.body;
+    const userName = name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0];
+    
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+      return res.status(400).json({ success: false, error: 'Email invàlid' });
     }
-
-    // Verificar si l'usuari ja existeix
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        error: 'Ja existeix un usuari amb aquest email'
-      });
+    if (!password || password.length < 6) {
+      return res.status(400).json({ success: false, error: 'Contrasenya feble (mínim 6 caràcters)' });
     }
-
-    // Obtenir rol "user" per defecte
-    const userRole = await Role.findOne({ name: 'user' });
-    if (!userRole) {
-      return res.status(500).json({
-        success: false,
-        error: 'Error de configuració del sistema: Rol "user" no trobat'
-      });
+    
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'Email duplicat' });
     }
-
-    // Crear usuari
+    
+    const defaultRole = await Role.findOne({ name: 'viewer' });
+    const salt = await bcrypt.genSalt(10);
     const user = await User.create({
-      name,
+      name: userName,
       email,
-      password,
-      roles: [userRole._id]
+      password: await bcrypt.hash(password, salt),
+      roles: defaultRole ? [defaultRole._id] : []
     });
-
-    // Generar token
-    const token = user.generateAuthToken();
-
-    // Obtenir permisos
-    const permissions = await user.getEffectivePermissions();
-
+    
+    const accessToken = jwtService.generateAccessToken(user._id, user.email, user.roles.map(r => r.toString()));
+    const refreshToken = jwtService.generateRefreshToken(user._id);
+    
     res.status(201).json({
       success: true,
-      message: 'Usuari registrat correctament',
       data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          roles: [userRole.name]
-        },
-        token,
-        permissions
+        user: { id: user._id, name: user.name, email: user.email },
+        accessToken,
+        refreshToken,
+        expiresIn: 900
       }
     });
   } catch (error) {
-    console.error('Error al registrar:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error intern del servidor'
-    });
+    console.error('Register error:', error);
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
-/**
- * @desc    Iniciar sessió
- * @route   POST /api/auth/login
- * @access  Public
- */
-exports.login = async (req, res, next) => {
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-
-    // Validar email i contrasenya
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        error: 'Si us plau, introdueix email i contrasenya'
-      });
-    }
-
-    // Buscar usuari amb contrasenya
-    const user = await User.findOne({ email })
-      .select('+password')
-      .populate({
-        path: 'roles',
-        populate: {
-          path: 'permissions',
-          model: 'Permission'
-        }
-      });
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Credencials invàlides'
-      });
-    }
-
-    // Verificar si l'usuari està actiu
-    if (!user.isActive) {
-      return res.status(401).json({
-        success: false,
-        error: 'Compte desactivat. Contacta amb l\'administrador.'
-      });
-    }
-
-    // ✅ CORREGIT: usar comparePassword
-    const isMatch = await user.comparePassword(password);
-
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        error: 'Credencials invàlides'
-      });
-    }
-
-    // Generar token
-    const token = user.generateAuthToken();
-
-    // Actualitzar últim login
-    await user.updateLastLogin();
-
-    // Obtenir permisos efectius
-    const permissions = await user.getEffectivePermissions();
-
-    res.status(200).json({
-      success: true,
-      message: 'Login correcte',
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          roles: user.roles.map(role => role.name)
-        },
-        token,
-        permissions
-      }
-    });
-  } catch (error) {
-    console.error('Error al login:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error intern del servidor'
-    });
-  }
-};
-
-/**
- * @desc    Obtenir perfil d'usuari
- * @route   GET /api/auth/me
- * @access  Private
- */
-exports.getMe = async (req, res, next) => {
-  try {
-    const user = await User.findById(req.user._id)
-      .populate({
-        path: 'roles',
-        populate: {
-          path: 'permissions',
-          model: 'Permission'
-        }
-      });
-
-    // Obtenir permisos efectius
-    const permissions = await user.getEffectivePermissions();
-
-    res.status(200).json({
-      success: true,
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          roles: user.roles,
-          isActive: user.isActive,
-          createdAt: user.createdAt,
-          lastLogin: user.lastLogin
-        },
-        permissions
-      }
-    });
-  } catch (error) {
-    console.error('Error al obtenir perfil:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error intern del servidor'
-    });
-  }
-};
-
-/**
- * @desc    Tancar sessió
- * @route   POST /api/auth/logout
- * @access  Private
- */
-exports.logout = (req, res, next) => {
-  res.status(200).json({
-    success: true,
-    message: 'Sessió tancada correctament',
-    data: {}
-  });
-};
-
-/**
- * @desc    Actualitzar contrasenya
- * @route   PUT /api/auth/updatepassword
- * @access  Private
- */
-exports.updatePassword = async (req, res, next) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        error: 'Si us plau, introdueix la contrasenya actual i la nova'
-      });
-    }
-
-    const user = await User.findById(req.user._id).select('+password');
-
-    // ✅ CORREGIT: usar comparePassword
-    const isMatch = await user.comparePassword(currentPassword);
-
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        error: 'Contrasenya actual incorrecta'
-      });
-    }
-
-    user.password = newPassword;
-    await user.save();
-
-    const token = user.generateAuthToken();
-
-    res.status(200).json({
-      success: true,
-      message: 'Contrasenya actualitzada correctament',
-      token
-    });
-  } catch (error) {
-    console.error('Error al actualitzar contrasenya:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error intern del servidor'
-    });
-  }
-};
-
-/**
- * @desc    Verificar permís d'usuari
- * @route   POST /api/auth/check-permission
- * @access  Private
- */
-exports.checkUserPermission = async (req, res, next) => {
-  try {
-    const { permission } = req.body;
-
-    if (!permission) {
-      return res.status(400).json({
-        success: false,
-        error: 'El permís és obligatori'
-      });
-    }
-
-    // Verificar que el permís existeix
-    const permissionExists = await Permission.findOne({ name: permission });
+    const user = await User.findOne({ email }).populate('roles');
+    if (!user) return res.status(401).json({ success: false, error: 'Credencials invàlides' });
     
-    if (!permissionExists) {
-      return res.status(400).json({
-        success: false,
-        error: `El permís "${permission}" no existeix`
-      });
-    }
-
-    // Verificar si l'usuari té el permís
-    const user = await User.findById(req.user._id);
-    const hasPermission = await user.hasPermission(permission);
-
-    const statusCode = hasPermission ? 200 : 403;
-
-    res.status(statusCode).json({
+    const isValid = await user.comparePassword(password);
+    if (!isValid) return res.status(401).json({ success: false, error: 'Credencials invàlides' });
+    
+    user.lastLogin = new Date();
+    await user.save();
+    
+    const roleIds = user.roles.map(r => r._id.toString());
+    const accessToken = jwtService.generateAccessToken(user._id, user.email, roleIds);
+    const refreshToken = jwtService.generateRefreshToken(user._id);
+    
+    res.json({
       success: true,
-      hasPermission,
-      permission,
-      message: hasPermission 
-        ? 'Tens permís per fer aquesta acció'
-        : 'No tens permís per fer aquesta acció'
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          roles: user.roles.map(r => ({ id: r._id, name: r.name, level: r.level }))
+        },
+        accessToken,
+        refreshToken,
+        expiresIn: 900
+      }
     });
   } catch (error) {
-    console.error('Error al verificar permís:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error intern del servidor'
-    });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
+
+const refresh = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(400).json({ success: false, error: 'Refresh token requerit' });
+    
+    const isRevoked = await jwtService.isTokenRevoked(refreshToken);
+    if (isRevoked) return res.status(401).json({ success: false, error: 'Token revocat' });
+    
+    const decoded = jwtService.verifyRefreshToken(refreshToken);
+    if (!decoded) return res.status(401).json({ success: false, error: 'Token invàlid' });
+    
+    const user = await User.findById(decoded.userId).populate('roles');
+    if (!user) return res.status(401).json({ success: false, error: 'Usuari no trobat' });
+    
+    const roleIds = user.roles.map(r => r._id.toString());
+    const newAccessToken = jwtService.generateAccessToken(user._id, user.email, roleIds);
+    
+    res.json({ success: true, accessToken: newAccessToken, expiresIn: 900 });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const logout = async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const { refreshToken } = req.body;
+    const accessToken = authHeader?.split(' ')[1];
+    
+    if (accessToken) await jwtService.revokeToken(accessToken, req.user._id, 'access');
+    if (refreshToken) await jwtService.revokeToken(refreshToken, req.user._id, 'refresh');
+    
+    res.json({ success: true, message: 'Sessió tancada' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.json({ success: true, message: 'Si existeix, rebràs un email' });
+    }
+    
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    await PasswordReset.create({
+      userId: user._id,
+      token: resetToken,
+      expiresAt: new Date(Date.now() + 3600000)
+    });
+    
+    console.log('\n🔐 TOKEN RECUPERACIÓ:', resetToken);
+    console.log(`🔗 POST /api/auth/reset-password/${resetToken}\n`);
+    
+    res.json({ success: true, message: 'Token enviat (veure consola)', token: resetToken });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+    
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'Contrasenya feble' });
+    }
+    
+    const resetRequest = await PasswordReset.findOne({
+      token,
+      usedAt: null,
+      expiresAt: { $gt: new Date() }
+    });
+    
+    if (!resetRequest) {
+      return res.status(400).json({ success: false, error: 'Token invàlid o expirat' });
+    }
+    
+    const salt = await bcrypt.genSalt(10);
+    await User.findByIdAndUpdate(resetRequest.userId, {
+      password: await bcrypt.hash(newPassword, salt)
+    });
+    
+    resetRequest.usedAt = new Date();
+    await resetRequest.save();
+    
+    res.json({ success: true, message: 'Contrasenya actualitzada' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+module.exports = { register, login, refresh, logout, forgotPassword, resetPassword };
