@@ -1,0 +1,13 @@
+{
+    "name": "blog/mvc",
+    "description": "Blog MVC con PHP OOP - Proyecto completo",
+    "type": "project",
+    "require": {
+        "php": ">=8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Blog\\": "src/"
+        }
+    }
+}

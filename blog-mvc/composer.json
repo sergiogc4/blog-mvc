@@ -1,0 +1,11 @@
+{
+    "name": "blog/mvc",
+    "description": "Blog MVC con PHP OOP",
+    "type": "project",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Blog\\": "src/"
+        }
+    }
+}

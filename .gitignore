@@ -1,0 +1,12 @@
+/vendor/
+.env
+.env.*
+storage/logs/*.log
+storage/uploads/*
+.DS_Store
+composer.phar
+.phpunit.cache
+.vscode/
+.idea/
+Thumbs.db
+config/database.php
