@@ -1,0 +1,372 @@
+{
+  "info": {
+    "name": "T9 - JWT Avançat + Jerarquia de Rols (51 proves)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. AUTENTICACIÓ (7 proves)",
+      "item": [
+        {
+          "name": "1.1 Registre d'Usuari",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"joan_{{$timestamp}}@example.com\", \"password\": \"Password123!\", \"firstName\": \"Joan\", \"lastName\": \"Garcia\"}"},
+            "url": "http://localhost:3000/api/auth/register"
+          },
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 201\", () => pm.response.to.have.status(201));"]}}]
+        },
+        {
+          "name": "1.2 Login Correcte",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"admin@system.com\", \"password\": \"Admin123!\"}"},
+            "url": "http://localhost:3000/api/auth/login"
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+            "const json = pm.response.json();",
+            "if(json.data && json.data.accessToken) {",
+            "  pm.collectionVariables.set(\"accessToken\", json.data.accessToken);",
+            "  pm.collectionVariables.set(\"refreshToken\", json.data.refreshToken);",
+            "  pm.collectionVariables.set(\"userId\", json.data.user.id);",
+            "}"
+          ]}}]
+        },
+        {
+          "name": "1.3 Login Incorrecte",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"admin@system.com\", \"password\": \"wrong\"}"},
+            "url": "http://localhost:3000/api/auth/login"
+          },
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 401\", () => pm.response.to.have.status(401));"]}}]
+        },
+        {
+          "name": "1.4 Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"refreshToken\": \"{{refreshToken}}\"}"},
+            "url": "http://localhost:3000/api/auth/refresh"
+          },
+          "event": [{"listen": "test", "script": {"exec": [
+            "pm.test(\"Status 200\", () => pm.response.to.have.status(200));",
+            "const json = pm.response.json();",
+            "if(json.accessToken) pm.collectionVariables.set(\"accessToken\", json.accessToken);"
+          ]}}]
+        },
+        {
+          "name": "1.5 Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{accessToken}}"}
+            ],
+            "body": {"mode": "raw", "raw": "{\"refreshToken\": \"{{refreshToken}}\"}"},
+            "url": "http://localhost:3000/api/auth/logout"
+          },
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "1.6 Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"email\": \"admin@system.com\"}"},
+            "url": "http://localhost:3000/api/auth/forgot-password"
+          },
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "1.7 Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {"mode": "raw", "raw": "{\"newPassword\": \"NovaPassword123!\"}"},
+            "url": "http://localhost:3000/api/auth/reset-password/{{resetToken}}"
+          },
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        }
+      ]
+    },
+    {
+      "name": "2. USUARIS (5 proves)",
+      "item": [
+        {
+          "name": "2.1 Llistar Usuaris",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/users"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "2.2 Obtenir Usuari per ID",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/users/{{userId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "2.3 Actualitzar Usuari",
+          "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"name\": \"Joan Actualitzat\"}"}, "url": "http://localhost:3000/api/users/{{userId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "2.4 Obtenir Permisos Usuari",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/users/{{userId}}/permissions"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "2.5 Esborrar Usuari",
+          "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/users/{{deleteUserId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        }
+      ]
+    },
+    {
+      "name": "3. ROLS (8 proves)",
+      "item": [
+        {
+          "name": "3.1 Llistar Rols",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/roles"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "3.2 Obtenir Rol per ID",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/roles/{{roleId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "3.3 Crear Rol",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"name\": \"editor_test\", \"level\": 2, \"description\": \"Rol temporal\"}"}, "url": "http://localhost:3000/api/roles"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 201\", () => pm.response.to.have.status(201));"]}}]
+        },
+        {
+          "name": "3.4 Actualitzar Rol",
+          "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"description\": \"Rol actualitzat\"}"}, "url": "http://localhost:3000/api/roles/{{roleId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "3.5 Obtenir Jerarquia",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/roles/{{roleId}}/hierarchy"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "3.6 Obtenir Permisos Heretats",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/roles/{{roleId}}/permissions"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "3.7 Esborrar Rol",
+          "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/roles/{{deleteRoleId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "3.8 Error - Cicle jeràrquic",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"name\": \"invalid\", \"level\": 1, \"parentRole\": \"{{roleId}}\", \"description\": \"Test\"}"}, "url": "http://localhost:3000/api/roles"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 400\", () => pm.response.to.have.status(400));"]}}]
+        }
+      ]
+    },
+    {
+      "name": "4. PERMISOS (6 proves)",
+      "item": [
+        {
+          "name": "4.1 Llistar Permisos",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/permissions"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "4.2 Obtenir Permís per ID",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/permissions/{{permissionId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "4.3 Crear Permís",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"name\": \"test:perm\", \"description\": \"Permís de prova\", \"category\": \"test\"}"}, "url": "http://localhost:3000/api/permissions"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 201\", () => pm.response.to.have.status(201));"]}}]
+        },
+        {
+          "name": "4.4 Actualitzar Permís",
+          "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"description\": \"Actualitzat\"}"}, "url": "http://localhost:3000/api/permissions/{{permissionId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "4.5 Esborrar Permís",
+          "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/permissions/{{deletePermId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "4.6 Error - Permís Duplicat",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"name\": \"tasks:read\", \"description\": \"Duplicat\", \"category\": \"tasks\"}"}, "url": "http://localhost:3000/api/permissions"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 400\", () => pm.response.to.have.status(400));"]}}]
+        }
+      ]
+    },
+    {
+      "name": "5. DELEGACIÓ (6 proves)",
+      "item": [
+        {
+          "name": "5.1 Llistar Delegacions",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/delegations"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "5.2 Obtenir Delegació per ID",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/delegations/{{delegationId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "5.3 Crear Delegació",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"toUserId\": \"{{userId}}\", \"permission\": \"tasks:read\", \"reason\": \"Delegació\", \"daysValid\": 5}"}, "url": "http://localhost:3000/api/delegations"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 201\", () => pm.response.to.have.status(201));"]}}]
+        },
+        {
+          "name": "5.4 Delegacions d'un Usuari",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/delegations/user/{{userId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "5.5 Revocar Delegació",
+          "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/delegations/{{delegationId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "5.6 Error - Dies Negatius",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"toUserId\": \"{{userId}}\", \"permission\": \"tasks:read\", \"reason\": \"Test\", \"daysValid\": -1}"}, "url": "http://localhost:3000/api/delegations"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 400\", () => pm.response.to.have.status(400));"]}}]
+        }
+      ]
+    },
+    {
+      "name": "6. AUDITORIA (5 proves)",
+      "item": [
+        {
+          "name": "6.1 Obtenir Logs",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/audit/logs"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "6.2 Filtrar per Acció",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/audit/logs?action=tasks:read"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "6.3 Filtrar per Usuari",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/audit/logs?userId={{userId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "6.4 Estadístiques",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/audit/stats"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "6.5 Exportar CSV",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/audit/export?format=csv"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        }
+      ]
+    },
+    {
+      "name": "7. TASQUES (5 proves)",
+      "item": [
+        {
+          "name": "7.1 Crear Tasca",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"title\": \"Tasca nova\", \"description\": \"Desc\", \"status\": \"pending\"}"}, "url": "http://localhost:3000/api/tasks"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 201\", () => pm.response.to.have.status(201));"]}}]
+        },
+        {
+          "name": "7.2 Llistar Tasques",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/tasks?page=1&limit=10"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "7.3 Actualitzar Tasca",
+          "request": {"method": "PUT", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{accessToken}}"}], "body": {"mode": "raw", "raw": "{\"title\": \"Actualitzada\", \"status\": \"in_progress\"}"}, "url": "http://localhost:3000/api/tasks/{{taskId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "7.4 Obtenir Tasca per ID",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/tasks/{{taskId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        },
+        {
+          "name": "7.5 Esborrar Tasca",
+          "request": {"method": "DELETE", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/tasks/{{taskId}}"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 200\", () => pm.response.to.have.status(200));"]}}]
+        }
+      ]
+    },
+    {
+      "name": "8. SEGURETAT (5 proves)",
+      "item": [
+        {
+          "name": "8.1 Accés sense Token",
+          "request": {"method": "GET", "url": "http://localhost:3000/api/tasks"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 401\", () => pm.response.to.have.status(401));"]}}]
+        },
+        {
+          "name": "8.2 Token Invàlid",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer token_invalid"}], "url": "http://localhost:3000/api/tasks"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 401\", () => pm.response.to.have.status(401));"]}}]
+        },
+        {
+          "name": "8.3 Token Expirat",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjF9.xxx"}], "url": "http://localhost:3000/api/tasks"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 401\", () => pm.response.to.have.status(401));"]}}]
+        },
+        {
+          "name": "8.4 Accés sense permís",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{userAccessToken}}"}], "body": {"mode": "raw", "raw": "{\"name\": \"test\", \"level\": 1, \"description\": \"test\"}"}, "url": "http://localhost:3000/api/roles"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 403\", () => pm.response.to.have.status(403));"]}}]
+        },
+        {
+          "name": "8.5 Rate Limiting",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{userAccessToken}}"}], "url": "http://localhost:3000/api/tasks"},
+          "event": [{"listen": "test", "script": {"exec": ["// Cal executar 101 cops; la 101 ha de ser 429"]}}]
+        }
+      ]
+    },
+    {
+      "name": "9. ERRORS (4 proves)",
+      "item": [
+        {
+          "name": "9.1 Email Invàlid",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"email\": \"invalid\", \"password\": \"Password123!\", \"firstName\": \"Joan\", \"lastName\": \"Garcia\"}"}, "url": "http://localhost:3000/api/auth/register"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 400\", () => pm.response.to.have.status(400));"]}}]
+        },
+        {
+          "name": "9.2 Contrasenya Feble",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"email\": \"test@example.com\", \"password\": \"123\", \"firstName\": \"Joan\", \"lastName\": \"Garcia\"}"}, "url": "http://localhost:3000/api/auth/register"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 400\", () => pm.response.to.have.status(400));"]}}]
+        },
+        {
+          "name": "9.3 Email Duplicat",
+          "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "body": {"mode": "raw", "raw": "{\"email\": \"admin@system.com\", \"password\": \"Password123!\", \"firstName\": \"Joan\", \"lastName\": \"Garcia\"}"}, "url": "http://localhost:3000/api/auth/register"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 400\", () => pm.response.to.have.status(400));"]}}]
+        },
+        {
+          "name": "9.4 Recurs No Trobat",
+          "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{accessToken}}"}], "url": "http://localhost:3000/api/tasks/id_inexistent"},
+          "event": [{"listen": "test", "script": {"exec": ["pm.test(\"Status 404\", () => pm.response.to.have.status(404));"]}}]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {"key": "accessToken", "value": ""},
+    {"key": "refreshToken", "value": ""},
+    {"key": "userId", "value": ""},
+    {"key": "roleId", "value": ""},
+    {"key": "permissionId", "value": ""},
+    {"key": "delegationId", "value": ""},
+    {"key": "taskId", "value": ""},
+    {"key": "resetToken", "value": ""},
+    {"key": "deleteRoleId", "value": ""},
+    {"key": "deletePermId", "value": ""},
+    {"key": "deleteUserId", "value": ""},
+    {"key": "userAccessToken", "value": ""}
+  ]
+}
